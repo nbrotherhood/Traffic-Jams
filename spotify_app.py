@@ -11,6 +11,8 @@ import uuid
 import requests
 import json
 
+st.set_page_config(page_title="Spotify Stats")
+
 CLIENT_ID = "ccd5da2397674bcaa675148a646996c3"
 REDIRECT_URI = "http://127.0.0.1:3000"
 SCOPE = 'user-top-read'
