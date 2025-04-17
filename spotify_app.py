@@ -447,54 +447,53 @@ else:
             st.warning("No genre data available for pie chart.")
 
     if top_artists and top_tracks:
-        with st.expander("**Export All Data**", expanded=True):
-            all_data = {
-                "artists": pd.DataFrame([{
-                    "rank": i + 1,
-                    "name": artist["name"],
-                    "popularity": artist["popularity"],
-                    "followers": artist["followers"]["total"],
-                    "genres": ", ".join(artist["genres"]),
-                    "spotify_id": artist["id"],
-                    "time_range": time_range_api
-                } for i, artist in enumerate(top_artists)]),
+        all_data = {
+            "artists": pd.DataFrame([{
+                "rank": i + 1,
+                "name": artist["name"],
+                "popularity": artist["popularity"],
+                "followers": artist["followers"]["total"],
+                "genres": ", ".join(artist["genres"]),
+                "spotify_id": artist["id"],
+                "time_range": time_range_api
+            } for i, artist in enumerate(top_artists)]),
 
-                "tracks": pd.DataFrame([{
-                    "rank": i + 1,
-                    "name": track["name"],
-                    "artist": track["artists"][0]["name"],
-                    "album": track["album"]["name"],
-                    "duration_ms": track["duration_ms"],
-                    "popularity": track["popularity"],
-                    "spotify_id": track["id"],
-                    "time_range": time_range_api
-                } for i, track in enumerate(top_tracks)])
-            }
+            "tracks": pd.DataFrame([{
+                "rank": i + 1,
+                "name": track["name"],
+                "artist": track["artists"][0]["name"],
+                "album": track["album"]["name"],
+                "duration_ms": track["duration_ms"],
+                "popularity": track["popularity"],
+                "spotify_id": track["id"],
+                "time_range": time_range_api
+            } for i, track in enumerate(top_tracks)])
+        }
 
             from io import StringIO
 
-            buffer = StringIO()
-            buffer.write("# SPOTIFY LISTENING STATS\n\n")
-            buffer.write(f"# Time Range: {time_range_display}\n")
-            buffer.write(f"# Date Exported: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        buffer = StringIO()
+        buffer.write("# SPOTIFY LISTENING STATS\n\n")
+        buffer.write(f"# Time Range: {time_range_display}\n")
+        buffer.write(f"# Date Exported: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
 
-            buffer.write("# TOP ARTISTS\n")
-            all_data["artists"].to_csv(buffer, index=False)
-            buffer.write("\n\n# TOP TRACKS\n")
-            all_data["tracks"].to_csv(buffer, index=False)
+        buffer.write("# TOP ARTISTS\n")
+        all_data["artists"].to_csv(buffer, index=False)
+        buffer.write("\n\n# TOP TRACKS\n")
+        all_data["tracks"].to_csv(buffer, index=False)
 
-            csv_data = buffer.getvalue()
+        csv_data = buffer.getvalue()
 
-            all_data_export_success = st.empty()
+        all_data_export_success = st.empty()
 
-            if st.download_button(
-                    label="Export All Data to CSV",
-                    data=csv_data,
-                    file_name=f"spotify_listening_data_{time_range_api}_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                    key="all_data_export"
-            ):
-                all_data_export_success.success("Success: Data exported to CSV!")
+        if st.download_button(
+                label="Export All Data to CSV",
+                data=csv_data,
+                file_name=f"spotify_listening_data_{time_range_api}_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                key="all_data_export"
+        ):
+            all_data_export_success.success("Success: Data exported to CSV!")
 
     with st.expander("**About Time Ranges:**", expanded=True):st.info("""
     **Time Ranges:**
