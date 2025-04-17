@@ -136,35 +136,24 @@ if not st.session_state.token_verified:
     # Add JavaScript to capture and store the token
     st.markdown("""
     <script>
-    // Function to run when page loads
     document.addEventListener('DOMContentLoaded', function() {
-        // Check if we have a token in the URL
         if (window.location.hash) {
-            // Store the whole URL with hash in localStorage
             localStorage.setItem('spotify_redirect_url', window.location.href);
             
-            // Wait for Streamlit to fully load
             setTimeout(function() {
-                // Find the input field and button
                 const inputField = document.querySelector('input[aria-label="Enter the URL after authorization:"]');
                 const buttons = Array.from(document.querySelectorAll('button'));
                 const submitButton = buttons.find(b => b.textContent.includes('Enter'));
                 
                 if (inputField && submitButton) {
-                    // Set the value to the full URL
                     inputField.value = window.location.href;
-                    
-                    // Trigger input event to notify Streamlit of the change
                     inputField.dispatchEvent(new Event('input', { bubbles: true }));
-                    
-                    // Then click the button
                     setTimeout(function() {
                         submitButton.click();
                     }, 500);
                 }
-            }, 1000); // Wait for Streamlit to load
+            }, 1000);
         } 
-        // Check if we have a stored URL from previous authentication
         else if (localStorage.getItem('spotify_redirect_url') && 
                  !document.body.textContent.includes('Your Spotify Listening Stats')) {
             const inputField = document.querySelector('input[aria-label="Enter the URL after authorization:"]');
@@ -172,13 +161,8 @@ if not st.session_state.token_verified:
             const submitButton = buttons.find(b => b.textContent.includes('Enter'));
             
             if (inputField && submitButton) {
-                // Set the value to the stored URL
                 inputField.value = localStorage.getItem('spotify_redirect_url');
-                
-                // Trigger input event
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
-                
-                // Click the button
                 setTimeout(function() {
                     submitButton.click();
                 }, 500);
