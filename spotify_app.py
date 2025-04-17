@@ -11,7 +11,7 @@ import uuid
 import requests
 import json
 
-st.set_page_config(page_title="Your Spotify Stats")
+st.set_page_config(page_title="Your Spotify Stats", page_icon="🎵")
 
 CLIENT_ID = "ccd5da2397674bcaa675148a646996c3"
 REDIRECT_URI = "https://traffic-jams-spotify-stats.streamlit.app/"
@@ -133,12 +133,68 @@ if not st.session_state.token_verified:
     st.title("Spotify Listening Stats")
     st.write("Connect your Spotify account to see your listening statistics")
 
+    # Add JavaScript to capture and store the token
+    st.markdown("""
+    <script>
+    // Function to run when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we have a token in the URL
+        if (window.location.hash) {
+            // Store the whole URL with hash in localStorage
+            localStorage.setItem('spotify_redirect_url', window.location.href);
+            
+            // Wait for Streamlit to fully load
+            setTimeout(function() {
+                // Find the input field and button
+                const inputField = document.querySelector('input[aria-label="Enter the URL after authorization:"]');
+                const buttons = Array.from(document.querySelectorAll('button'));
+                const submitButton = buttons.find(b => b.textContent.includes('Enter'));
+                
+                if (inputField && submitButton) {
+                    // Set the value to the full URL
+                    inputField.value = window.location.href;
+                    
+                    // Trigger input event to notify Streamlit of the change
+                    inputField.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    // Then click the button
+                    setTimeout(function() {
+                        submitButton.click();
+                    }, 500);
+                }
+            }, 1000); // Wait for Streamlit to load
+        } 
+        // Check if we have a stored URL from previous authentication
+        else if (localStorage.getItem('spotify_redirect_url') && 
+                 !document.body.textContent.includes('Your Spotify Listening Stats')) {
+            const inputField = document.querySelector('input[aria-label="Enter the URL after authorization:"]');
+            const buttons = Array.from(document.querySelectorAll('button'));
+            const submitButton = buttons.find(b => b.textContent.includes('Enter'));
+            
+            if (inputField && submitButton) {
+                // Set the value to the stored URL
+                inputField.value = localStorage.getItem('spotify_redirect_url');
+                
+                // Trigger input event
+                inputField.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // Click the button
+                setTimeout(function() {
+                    submitButton.click();
+                }, 500);
+            }
+        }
+    });
+    </script>
+    """, unsafe_allow_html=True)
+
     auth_url = get_auth_url()
     st.markdown(f"[Click here to authorize with Spotify]({auth_url})")
 
     st.info(
-        "After authorizing, you'll be redirected to a URL containing the access token. Copy the entire URL from your browser's address bar and paste it here:")
+        "After authorizing, you'll be redirected back automatically. If automatic connection doesn't work, copy the entire URL from your browser's address bar and paste it here:")
     redirect_url = st.text_input("Enter the URL after authorization:")
+    enter_button = st.button("Enter")  # Named button for JavaScript to find
 
     if redirect_url:
         try:
@@ -195,6 +251,12 @@ else:
     show_popularity = st.sidebar.checkbox("Show Artist Popularity Chart", value=True)
 
     if st.sidebar.button("Logout"):
+        # Add JavaScript to clear localStorage on logout
+        st.markdown("""
+        <script>
+        localStorage.removeItem('spotify_redirect_url');
+        </script>
+        """, unsafe_allow_html=True)
         st.session_state.token = None
         st.session_state.token_verified = False
         st.rerun()
