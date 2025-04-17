@@ -176,7 +176,9 @@ if not st.session_state.token_verified:
     st.markdown(f"[Click here to authorize with Spotify]({auth_url})")
 
     st.info(
-        "After authorizing, you'll be redirected back automatically. If automatic connection doesn't work, copy the entire URL from your browser's address bar and paste it here:")
+        "IMPORTANT READ:
+        After authorization, you'll be redirected back automatically.
+        Copy and Paste the entire URL here and press Enter.")
     redirect_url = st.text_input("Enter the URL after authorization:")
     enter_button = st.button("Enter")  # Named button for JavaScript to find
 
