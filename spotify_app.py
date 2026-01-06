@@ -9,7 +9,7 @@ from io import StringIO
 # ======================
 # PAGE CONFIG
 # ======================
-st.set_page_config(page_title="Your Spotify Stats")
+st.set_page_config(page_title="Your Spotify Stats", page_icon="🎵")
 
 # ======================
 # SPOTIFY CONFIG
@@ -169,7 +169,7 @@ artist_df = pd.DataFrame(
 
 if show_artists and not artist_df.empty:
     artist_df.insert(0, "Rank", range(1, len(artist_df) + 1))
-    st.header(f"Top Artists ({time_range_display})")
+    st.header(f" Top {len(artist_df)} Artists ({time_range_display})")
     st.dataframe(artist_df, hide_index=True, use_container_width=True)
 
     st.download_button(
@@ -196,7 +196,7 @@ track_df = pd.DataFrame(
 
 if show_songs and not track_df.empty:
     track_df.insert(0, "Rank", range(1, len(track_df) + 1))
-    st.header(f"Top Songs ({time_range_display})")
+    st.header(f"Top {limit} Songs ({time_range_display})")
     st.dataframe(track_df, hide_index=True, use_container_width=True)
 
     st.download_button(
@@ -210,14 +210,41 @@ if show_songs and not track_df.empty:
 # ======================
 if show_popularity and not artist_df.empty:
     st.header("Artist Popularity Comparison")
-    chart_df = artist_df.sort_values("Rank")
 
-    st.bar_chart(
-        data=chart_df,
-        x="Rank",
-        y="Popularity"
-    )
+    popularity_df = artist_df[['Rank', 'Artist', 'Popularity']].copy()
+    popularity_df = popularity_df.sort_values('Rank')
 
+    fig_popularity = {
+        'data': [{
+            'type': 'bar',
+            'x': popularity_df['Rank'].tolist(),
+            'y': popularity_df['Popularity'].tolist(),
+            'marker': {
+                'color': 'rgb(30, 215, 96)',
+                'opacity': 0.8
+            },
+            'text': popularity_df['Artist'].tolist(),
+            'hoverinfo': 'text+y',
+            'name': 'Popularity'
+        }],
+        'layout': {
+            'title': f'Artist Popularity vs Rank (Filtered: {popularity_range[0]}–{popularity_range[1]})',
+            'xaxis': {
+                'title': 'Rank',
+                'tickmode': 'linear'
+            },
+            'yaxis': {
+                'title': 'Popularity (0–100)',
+                'range': [0, 100]
+            }
+        }
+    }
+
+    st.plotly_chart(fig_popularity, use_container_width=True)
+
+elif show_popularity:
+    st.header("Artist Popularity Comparison")
+    st.warning("No artists found within the selected popularity range.")
 # ======================
 # ARTIST PIE CHART
 # ======================
@@ -245,7 +272,7 @@ if show_artist_pie and top_tracks:
 # GENRE PIE CHART
 # ======================
 if show_genre_pie and top_artists:
-    st.header("Genre Distribution")
+    st.header("Genre Concentration")
     genres = []
     for artist in top_artists:
         genres.extend(artist["genres"])
@@ -286,7 +313,7 @@ if top_artists and top_tracks:
 # ======================
 with st.expander("About Time Ranges"):
     st.info("""
-    **Last Month** — ~4 weeks  
-    **Last 6 Months** — medium-term listening  
-    **Last Year** — long-term listening habits
+    **Last Month**: Reflects your short-term listening habits over approximately the last 4 weeks  
+    **Last 6 Months**: Reflects your medium-term listening habits over approximately 6 months  
+    **Last Year**: Reflects your long-term listening habits over approximately 1 year
     """)
