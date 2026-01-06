@@ -15,7 +15,7 @@ st.set_page_config(page_title="Your Spotify Stats")
 # SPOTIFY CONFIG
 # ======================
 CLIENT_ID = "ccd5da2397674bcaa675148a646996c3"
-CLIENT_SECRET = ""  # PKCE does not require a client secret
+CLIENT_SECRET = "2de80f4bf5794c6997f6de9169661c0d"
 REDIRECT_URI = "https://traffic-jams-spotify-stats.streamlit.app/"
 SCOPE = "user-top-read"
 
@@ -28,9 +28,10 @@ if "auth_manager" not in st.session_state:
         client_secret=CLIENT_SECRET,
         redirect_uri=REDIRECT_URI,
         scope=SCOPE,
-        cache_path=None,
-        show_dialog=True
+        cache_path=".spotifycache",
+        open_browser=False
     )
+
 
 if "sp" not in st.session_state:
     st.session_state.sp = None
