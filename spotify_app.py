@@ -12,7 +12,7 @@ from io import StringIO
 st.set_page_config(page_title="Your Spotify Stats", page_icon="🎵")
 
 # ======================
-# SPOTIFY CONFIG
+# SPOTIFY CONFIG (UNCHANGED)
 # ======================
 CLIENT_ID = "ccd5da2397674bcaa675148a646996c3"
 CLIENT_SECRET = "2de80f4bf5794c6997f6de9169661c0d"
@@ -28,10 +28,10 @@ if "auth_manager" not in st.session_state:
         client_secret=CLIENT_SECRET,
         redirect_uri=REDIRECT_URI,
         scope=SCOPE,
-        cache_path=".spotifycache",
+        cache_handler=None,
+        show_dialog=True,
         open_browser=False
     )
-
 
 if "sp" not in st.session_state:
     st.session_state.sp = None
@@ -41,25 +41,23 @@ if "sp" not in st.session_state:
 # ======================
 query_params = st.query_params
 
-if "code" in query_params and not st.session_state.get("auth_complete", False):
+if "code" in query_params and st.session_state.sp is None:
     try:
         token_info = st.session_state.auth_manager.get_access_token(
-            query_params["code"],
-            as_dict=True
+            query_params["code"]
         )
 
         st.session_state.sp = spotipy.Spotify(
             auth=token_info["access_token"]
         )
 
-        st.session_state.auth_complete = True
         st.query_params.clear()
         st.rerun()
 
-    except Exception as e:
+    except Exception:
         st.error("Authentication failed. Please log in again.")
-        st.session_state.auth_complete = False
         st.query_params.clear()
+        st.rerun()
 
 # ======================
 # LOGIN SCREEN
@@ -146,8 +144,9 @@ show_genre_pie = st.sidebar.checkbox("Show Genre Distribution", True)
 show_popularity = st.sidebar.checkbox("Show Artist Popularity Chart", True)
 
 if st.sidebar.button("Logout"):
-    st.session_state.sp = None
-    st.session_state.auth_manager.cache_handler.cache.clear()
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.query_params.clear()
     st.rerun()
 
 # ======================
@@ -179,7 +178,7 @@ artist_df = pd.DataFrame(
 
 if show_artists and not artist_df.empty:
     artist_df.insert(0, "Rank", range(1, len(artist_df) + 1))
-    st.header(f" Top {len(artist_df)} Artists ({time_range_display})")
+    st.header(f"Top {len(artist_df)} Artists ({time_range_display})")
     st.dataframe(artist_df, hide_index=True, use_container_width=True)
 
     st.download_button(
@@ -239,14 +238,8 @@ if show_popularity and not artist_df.empty:
         }],
         'layout': {
             'title': f'Artist Popularity vs Rank (Filtered: {popularity_range[0]}–{popularity_range[1]})',
-            'xaxis': {
-                'title': 'Rank',
-                'tickmode': 'linear'
-            },
-            'yaxis': {
-                'title': 'Popularity (0–100)',
-                'range': [0, 100]
-            }
+            'xaxis': {'title': 'Rank', 'tickmode': 'linear'},
+            'yaxis': {'title': 'Popularity (0–100)', 'range': [0, 100]}
         }
     }
 
@@ -255,6 +248,7 @@ if show_popularity and not artist_df.empty:
 elif show_popularity:
     st.header("Artist Popularity Comparison")
     st.warning("No artists found within the selected popularity range.")
+
 # ======================
 # ARTIST PIE CHART
 # ======================
@@ -327,4 +321,3 @@ with st.expander("About Time Ranges"):
     **Last 6 Months**: Reflects your medium-term listening habits over approximately 6 months  
     **Last Year**: Reflects your long-term listening habits over approximately 1 year
     """)
-
