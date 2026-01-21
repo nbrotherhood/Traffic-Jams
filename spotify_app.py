@@ -41,15 +41,25 @@ if "sp" not in st.session_state:
 # ======================
 query_params = st.query_params
 
-if "code" in query_params:
-    token_info = st.session_state.auth_manager.get_access_token(
-        query_params["code"], as_dict=True
-    )
-    st.session_state.sp = spotipy.Spotify(
-        auth=token_info["access_token"]
-    )
-    st.query_params.clear()
-    st.rerun()
+if "code" in query_params and not st.session_state.get("auth_complete", False):
+    try:
+        token_info = st.session_state.auth_manager.get_access_token(
+            query_params["code"],
+            as_dict=True
+        )
+
+        st.session_state.sp = spotipy.Spotify(
+            auth=token_info["access_token"]
+        )
+
+        st.session_state.auth_complete = True
+        st.query_params.clear()
+        st.rerun()
+
+    except Exception as e:
+        st.error("Authentication failed. Please log in again.")
+        st.session_state.auth_complete = False
+        st.query_params.clear()
 
 # ======================
 # LOGIN SCREEN
@@ -317,3 +327,4 @@ with st.expander("About Time Ranges"):
     **Last 6 Months**: Reflects your medium-term listening habits over approximately 6 months  
     **Last Year**: Reflects your long-term listening habits over approximately 1 year
     """)
+
