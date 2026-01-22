@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from spotipy.cache_handler import MemoryCacheHandler
 from datetime import datetime
 from collections import Counter
 from io import StringIO
@@ -12,15 +13,22 @@ from io import StringIO
 st.set_page_config(page_title="Your Spotify Stats", page_icon="🎵")
 
 # ======================
-# SPOTIFY CONFIG (UNCHANGED)
+# SPOTIFY CONFIG
+# (Use st.secrets in deployment)
 # ======================
-CLIENT_ID = "ccd5da2397674bcaa675148a646996c3"
-CLIENT_SECRET = "2de80f4bf5794c6997f6de9169661c0d"
+CLIENT_ID = "YOUR_CLIENT_ID"
+CLIENT_SECRET = "YOUR_CLIENT_SECRET"
 REDIRECT_URI = "https://traffic-jams-spotify-stats.streamlit.app/"
 SCOPE = "user-top-read"
 
 # ======================
-# SESSION STATE
+# PER-SESSION CACHE (CRITICAL FIX)
+# ======================
+if "spotify_cache" not in st.session_state:
+    st.session_state.spotify_cache = MemoryCacheHandler()
+
+# ======================
+# AUTH MANAGER (PER USER)
 # ======================
 if "auth_manager" not in st.session_state:
     st.session_state.auth_manager = SpotifyOAuth(
@@ -28,7 +36,7 @@ if "auth_manager" not in st.session_state:
         client_secret=CLIENT_SECRET,
         redirect_uri=REDIRECT_URI,
         scope=SCOPE,
-        cache_handler=None,
+        cache_handler=st.session_state.spotify_cache,
         show_dialog=True,
         open_browser=False
     )
@@ -41,10 +49,11 @@ if "sp" not in st.session_state:
 # ======================
 query_params = st.query_params
 
-if "code" in query_params and st.session_state.sp is None:
+if "code" in query_params:
     try:
         token_info = st.session_state.auth_manager.get_access_token(
-            query_params["code"]
+            query_params["code"],
+            as_dict=True
         )
 
         st.session_state.sp = spotipy.Spotify(
@@ -57,6 +66,7 @@ if "code" in query_params and st.session_state.sp is None:
     except Exception:
         st.error("Authentication failed. Please log in again.")
         st.query_params.clear()
+        st.session_state.sp = None
         st.rerun()
 
 # ======================
@@ -143,6 +153,9 @@ show_artist_pie = st.sidebar.checkbox("Show Artist Concentration", True)
 show_genre_pie = st.sidebar.checkbox("Show Genre Distribution", True)
 show_popularity = st.sidebar.checkbox("Show Artist Popularity Chart", True)
 
+# ======================
+# LOGOUT (FULL SESSION RESET)
+# ======================
 if st.sidebar.button("Logout"):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
@@ -179,7 +192,7 @@ artist_df = pd.DataFrame(
 if show_artists and not artist_df.empty:
     artist_df.insert(0, "Rank", range(1, len(artist_df) + 1))
     st.header(f"Top {len(artist_df)} Artists ({time_range_display})")
-    st.dataframe(artist_df, hide_index=True, use_container_width=True)
+    st.dataframe(artist_df, hide_index=True, width="stretch")
 
     st.download_button(
         "Export Artists to CSV",
@@ -206,7 +219,7 @@ track_df = pd.DataFrame(
 if show_songs and not track_df.empty:
     track_df.insert(0, "Rank", range(1, len(track_df) + 1))
     st.header(f"Top {limit} Songs ({time_range_display})")
-    st.dataframe(track_df, hide_index=True, use_container_width=True)
+    st.dataframe(track_df, hide_index=True, width="stretch")
 
     st.download_button(
         "Export Songs to CSV",
@@ -224,30 +237,21 @@ if show_popularity and not artist_df.empty:
     popularity_df = popularity_df.sort_values('Rank')
 
     fig_popularity = {
-        'data': [{
-            'type': 'bar',
-            'x': popularity_df['Rank'].tolist(),
-            'y': popularity_df['Popularity'].tolist(),
-            'marker': {
-                'color': 'rgb(30, 215, 96)',
-                'opacity': 0.8
-            },
-            'text': popularity_df['Artist'].tolist(),
-            'hoverinfo': 'text+y',
-            'name': 'Popularity'
+        "data": [{
+            "type": "bar",
+            "x": popularity_df["Rank"],
+            "y": popularity_df["Popularity"],
+            "text": popularity_df["Artist"],
+            "hoverinfo": "text+y",
+            "marker": {"opacity": 0.8}
         }],
-        'layout': {
-            'title': f'Artist Popularity vs Rank (Filtered: {popularity_range[0]}–{popularity_range[1]})',
-            'xaxis': {'title': 'Rank', 'tickmode': 'linear'},
-            'yaxis': {'title': 'Popularity (0–100)', 'range': [0, 100]}
+        "layout": {
+            "xaxis": {"title": "Rank", "tickmode": "linear"},
+            "yaxis": {"title": "Popularity (0–100)", "range": [0, 100]}
         }
     }
 
-    st.plotly_chart(fig_popularity, use_container_width=True)
-
-elif show_popularity:
-    st.header("Artist Popularity Comparison")
-    st.warning("No artists found within the selected popularity range.")
+    st.plotly_chart(fig_popularity, width="stretch")
 
 # ======================
 # ARTIST PIE CHART
@@ -311,13 +315,3 @@ if top_artists and top_tracks:
             buffer.getvalue(),
             file_name=f"spotify_listening_data_{time_range_api}.csv"
         )
-
-# ======================
-# ABOUT
-# ======================
-with st.expander("About Time Ranges"):
-    st.info("""
-    **Last Month**: Reflects your short-term listening habits over approximately the last 4 weeks  
-    **Last 6 Months**: Reflects your medium-term listening habits over approximately 6 months  
-    **Last Year**: Reflects your long-term listening habits over approximately 1 year
-    """)
