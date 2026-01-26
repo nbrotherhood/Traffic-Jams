@@ -15,9 +15,9 @@ st.set_page_config(page_title="Your Spotify Stats", page_icon="🎵")
 # ======================
 # SPOTIFY CONFIG
 # ======================
-CLIENT_ID = "ccd5da2397674bcaa675148a646996c3"
-CLIENT_SECRET = "2de80f4bf5794c6997f6de9169661c0d"
-REDIRECT_URI = "https://traffic-jams-spotify-stats.streamlit.app/"
+CLIENT_ID = st.secrets["spotify"]["client_id"]
+CLIENT_SECRET = st.secrets["spotify"]["client_secret"]
+REDIRECT_URI = st.secrets["spotify"]["redirect_uri"]
 SCOPE = "user-top-read"
 
 # ======================
@@ -314,4 +314,5 @@ if top_artists and top_tracks:
             buffer.getvalue(),
             file_name=f"spotify_listening_data_{time_range_api}.csv"
         )
+
 
